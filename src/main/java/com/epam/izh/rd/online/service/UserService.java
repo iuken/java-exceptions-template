@@ -1,6 +1,9 @@
 package com.epam.izh.rd.online.service;
 
 import com.epam.izh.rd.online.entity.User;
+import com.epam.izh.rd.online.exception.NotAccessException;
+import com.epam.izh.rd.online.exception.SimplePasswordException;
+import com.epam.izh.rd.online.exception.UserAlreadyRegisteredException;
 import com.epam.izh.rd.online.repository.IUserRepository;
 import com.epam.izh.rd.online.repository.UserRepository;
 
@@ -30,7 +33,19 @@ public class UserService implements IUserService {
      * @param user - даныне регистрирующегося пользователя
      */
     @Override
-    public User register(User user) {
+    public User register(User user) throws IllegalArgumentException, UserAlreadyRegisteredException, SimplePasswordException {
+        boolean userExist = userRepository.findByLogin(user.getLogin()) != null;
+        boolean isPasswordSimple = !(user.getPassword().contains("\\D"));
+        if (user.getPassword() == null || user.getPassword() == "" ||
+                user.getLogin() == null || user.getLogin() == "") {
+            throw new IllegalArgumentException ("Ошибка в заполнении полей");
+        }
+        if (userExist){
+            throw new UserAlreadyRegisteredException(String.format("Пользователь с логином '%s' уже зарегистрирован", user.getLogin()));
+        }
+        if (isPasswordSimple){
+            throw new SimplePasswordException("Пароль не соответствует требованиям безопасности");
+        }
 
         //
         // Здесь необходимо реализовать перечисленные выше проверки
@@ -58,11 +73,16 @@ public class UserService implements IUserService {
      *
      * @param login
      */
-    public void delete(String login) {
+    public void delete(String login) throws NotAccessException {
+        try {
+
+            userRepository.deleteByLogin(login);
+        } catch (UnsupportedOperationException ex){
+            throw new NotAccessException("Недостаточно прав для выполнения операции");
+        }
 
         // Здесь необходимо сделать доработку метод
 
-            userRepository.deleteByLogin(login);
 
         // Здесь необходимо сделать доработку метода
 
